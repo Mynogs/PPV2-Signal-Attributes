@@ -1,0 +1,62 @@
+
+generic = {
+  name = 'Data Type Duplicate',
+  parameter = {
+    inputs = 2
+  },
+
+  init = function(self)
+    block.setInputsPinCount(self.parameter.inputs)
+    for i = 1, self.parameter.inputs do
+      block.setInputPinTypeRestrains(i, 'any')
+    end
+    block.setOutputsPinCount(0)
+    block.modifyFlags('SupressStartFunctionCall', true)
+    block.modifyFlags('SupressStopFunctionCall', true)
+  end,
+
+  open = function(self)
+    gui.add('Info', 'Info', self.name, 'The Data Type Duplicate block test all inputs to have exactly the same data type')
+    gui.add('Edit', 'EditNumberOfInputs', 'Number of inputs')
+    gui.set('EditNumberOfInputs', 'Integer', self.parameter.inputs)
+    gui.setSize()
+  end,
+
+  apply = function(self)
+    self.parameter.inputs = gui.get('EditNumberOfInputs', 'Integer')
+    block.setInputsPinCount(self.parameter.inputs)
+    for i = 1, self.parameter.inputs do
+      block.setInputPinTypeRestrains(i, 'any')
+    end
+  end,
+
+  close = function()
+  end,
+
+  avatar = function(self)
+    return block.getDefaultAvatar(0x50, "'same\\nDT'")
+  end,
+
+  generate = function(self)
+    local source =
+      [==[
+        local block = {
+
+          step = function(...)
+            local args = {...}
+            local dt = type(args[1])
+            for i = 2, #rags do
+              if type(args[i] ~= dt then
+                assert(false, 'All inputs must have the same datatype')
+              end
+            end
+          end
+
+        }
+        return block
+      ]==]
+    return source
+  end,
+
+}
+

@@ -1,0 +1,51 @@
+-- 14.01.2018 16:41:25 AR V1.0a
+
+generic = {
+  name = 'Width',
+  parameter = {
+  },
+
+  init = function(self)
+    block.setInputsPinCount(1)
+    block.setInputPinTypeRestrains(1, 'table')
+    block.setOutputsPinCount(1)
+    block.modifyFlags('SupressStartFunctionCall', true)
+    block.modifyFlags('SupressStopFunctionCall', true)
+  end,
+
+  open = function(self)
+    gui.add('Info', 'Info', self.name, 'Output array width of input vector')
+    gui.setSize()
+  end,
+
+  apply = function(self)
+  end,
+
+  close = function()
+  end,
+
+  avatar = function(self)
+    return block.getDefaultAvatar(0x50, "", [[
+      draw.line(px(0), py(50), px(100), py(50))
+      draw.line(px(40), py(60), px(60), py(40))
+    ]])
+
+  end,
+
+  generate = function(self)
+    local source =
+      [==[
+        local block = {
+
+          step = function(a)
+            return #a
+          end
+
+        }
+        return block
+      ]==]
+    return source
+  end,
+
+}
+
