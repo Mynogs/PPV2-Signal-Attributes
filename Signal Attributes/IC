@@ -1,0 +1,115 @@
+-- 25.12.2018 16:50:45 AR V1.0a
+-- 25.12.2018 17:10:41 AR V1.0b Handle empty datatype
+
+generic = {
+  parameter = {
+    value = '0'
+  },
+
+  typeToName = {
+    [0] = 'is always nil.',
+    [1] = 'a boolean.',
+    [2] = 'light user data.',
+    [3] = 'a number.',
+    [4] = 'a string.',
+    [5] = 'a table.',
+    [6] = 'a function. Note the result of the function may not constant!',
+    [7] = 'user data.',
+    [8] = 'a thread. Note the result of the thread return may not constant!',
+  },
+
+  init = function(self)
+    block.setInputsPinCount(1)
+    block.setOutputsPinCount(1)
+    local type = 1 << require('sys').typeOfExpression(self.parameter.value)
+    block.setInputPinTypeRestrains(1, type)
+    block.setOutputPinTypeRestrains(1, type)
+    block.modifyFlags('SupressStartFunctionCall', true)
+    block.modifyFlags('SupressStopFunctionCall', true)
+  end,
+
+  open = function(self)
+    gui.add('HTMLInfo', 'Info', 'IC', [=[
+Sets the initial value of the output signal for the first simulation step.<br>
+For all future simulation steps outpus is input value.<br><br>
+A constant value, list or an expresssion.<br>
+<ul>
+<li>Use <i>{...}</i> for a vector.
+<li>Use <i>{{...},{...},...}</i> for a 2D vector.
+<li>Use <i>'string'</i>, <i>"string"</i> or <i>[[string]]</i> for a string.
+<li>Use <i>identifier</i> for a global variable.
+<li>Use <i>function() ... end</i> for a function
+</ul>
+]=])
+    gui.add('Edit', 'EditValue', 'Value or expression', {Width = 350})
+    gui.add('Label', 'LabelInfo', '')
+    gui.set('EditValue', 'Expression', self.parameter.value)
+    gui.setEventHandler(
+      self,
+      'EditValue',
+      {
+        Change = function(self)
+          local types = table.pack(require('sys').typeOfExpression(gui.get('EditValue', 'Text')))
+          local s
+          if #types == 0 then
+            s = 'Error: Expressen has no result!'
+          elseif #types > 1 then
+            s = 'Error: Expression has more the one result! (Missing outher { } to make a table?)'
+          else
+            s = 'Result of the expression is ' .. self.typeToName[types[1]]
+          end
+          gui.set('LabelInfo', 'Caption', s)
+          gui.update('LabelInfo')
+        end,
+      }
+    )
+    gui.setSize()
+  end,
+
+  apply = function(self)
+    self.parameter.value = gui.get('EditValue', 'Expression')
+    local type = require('sys').typeOfExpression(self.parameter.value)
+    assert(type and type >= 0, 'Can\'t evaluate datatype of the constant value.\nSyntax error?\nNot a constant value?')
+
+    block.setOutputPinTypeRestrains(1, 1 << type)
+  end,
+
+  close = function()
+  end,
+
+  avatar = function(self)
+    return block.getDefaultAvatar(0x50, "", [[
+      draw.line(px(0), py(50), px(100), py(50))
+      draw.text(0, 0, w, h / 2, '[1]', 7)
+    ]])
+  end,
+
+  generate = function(self)
+    local source =
+      [==[
+        return {
+
+          step = function(a)
+            if block.f then
+              return a
+            end
+            block.f = true
+            return VALUE
+          end
+
+        }
+      ]==]
+    local value = self.parameter.value
+    local type = require('sys').typeOfExpression(value)
+    if type == 6 then
+      local f = assert((load or loadstring)('return (' .. value .. ')()'))
+      value = f()
+    end
+    local replaces = {
+      ['VALUE'] = value
+    }
+    return string.gsub(source, '%a+', replaces)
+  end,
+
+}
+
